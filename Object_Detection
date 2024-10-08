@@ -1,0 +1,43 @@
+import cv2
+import torch
+
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s', source='github')
+
+cam = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cam.read()
+
+    if not ret:
+        print ("Error: Could not open Cam")
+        exit()
+    
+    #Resize frame
+    frame_resize = cv2.resize(frame, (640, 640))
+
+    #Normalize
+    frame_norm = frame_resize/255
+
+    #feed result into model
+    results = model(frame)
+
+    df = results.pandas().xyxy[0]
+
+    #Go through every row in pandas
+    for index, row in df.iterrows():
+        if row["confidence"] > 0.6:
+            cv2.rectangle(frame, (int(row['xmin']), int(row['ymin'])), (int(row['xmax']), int(row['ymax'])), (0, 255, 0), 2)
+            label_text = f"{row['name']} {row['confidence']:.2f}"
+            cv2.putText(frame, label_text, (int(row['xmin']), int(row['ymin'])), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(0, 255, 0), thickness=2)
+
+
+    cv2.imshow('Object Detection', frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cam.release()
+cv2.destroyAllWindows()
+
+
+
